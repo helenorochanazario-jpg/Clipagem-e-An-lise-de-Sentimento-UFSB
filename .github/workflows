@@ -1,0 +1,37 @@
+name: Clipping UFSB (3x ao dia)
+
+on:
+  schedule:
+    # Horários em UTC. Bahia é UTC-3 o ano todo (sem horário de verão).
+    - cron: "0 11 * * *"   # 08:00 em Bahia
+    - cron: "0 15 * * *"   # 12:00 em Bahia
+    - cron: "0 21 * * *"   # 18:00 em Bahia
+  workflow_dispatch: {}  # permite rodar manualmente pela aba Actions do GitHub
+
+jobs:
+  processar-clipping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90  # margem de sobra para lotes grandes de histórico
+    steps:
+      - name: Baixar o código do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Cache do modelo de sentimento (evita baixar de novo toda vez)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: modelo-pysentimiento-pt
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt
+
+      - name: Rodar o pipeline de clipping
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: python pipeline.py
