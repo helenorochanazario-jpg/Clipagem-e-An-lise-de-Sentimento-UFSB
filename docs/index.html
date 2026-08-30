@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Clipping UFSB — Painel de Monitoramento de Imprensa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root {
+    --navy: #002878;
+    --navy-light: #1c3f96;
+    --blue: #4FA8D8;
+    --yellow: #FFC53D;
+    --green: #34A65F;
+    --coral: #FF6B54;
+    --bg: #F5F7FA;
+    --surface: #FFFFFF;
+    --ink: #10182C;
+    --ink-muted: #5B6478;
+    --border: #E3E7EF;
+    --font-display: 'Lora', Georgia, serif;
+    --font-body: 'Inter', -apple-system, sans-serif;
+    --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; }
+
+  header {
+    background: var(--navy);
+    color: #fff;
+    padding: 2.25rem 1.5rem 3.25rem;
+  }
+  .header-inner { max-width: 1080px; margin: 0 auto; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+    margin: 0 0 0.4rem;
+  }
+  header p.subtitulo {
+    margin: 0;
+    color: #C7D3F0;
+    font-size: 0.95rem;
+    max-width: 46ch;
+  }
+
+  .wave { display: block; margin-top: -1px; }
+
+  main { max-width: 1080px; margin: -2.75rem auto 0; padding: 0 1.5rem 3rem; position: relative; z-index: 1; }
+
+  #aviso-demo {
+    display: none;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: #FFF6E5;
+    border: 1px solid var(--yellow);
+    color: #6b4f0a;
+    font-size: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    margin-bottom: 1.5rem;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 44, 0.04);
+  }
+  .kpi-numero {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 2rem;
+    color: var(--navy);
+    line-height: 1;
+  }
+  .kpi-label {
+    margin-top: 0.35rem;
+    font-size: 0.78rem;
+    color: var(--ink-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.15rem 1.25rem 1rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 44, 0.04);
+  }
+  .card h2 {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--ink-muted);
+    margin: 0 0 0.85rem;
+  }
+  .chart-wrap { position: relative; height: 240px; }
+
+  .recentes { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.15rem 1.25rem 0.5rem; }
+  .recentes h2 { font-family: var(--font-body); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted); margin: 0 0 0.6rem; }
+  .item-recente {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.9rem;
+    text-decoration: none;
+    padding: 0.7rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .item-recente:last-child { border-bottom: none; }
+  .item-titulo { font-size: 0.92rem; font-weight: 500; color: var(--ink); }
+  .item-meta { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-muted); white-space: nowrap; }
+  .tag {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    padding: 0.22rem 0.55rem;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .tag-positivo { background: #E7F6EC; color: #1F7A44; }
+  .tag-neutro { background: #FFF6E0; color: #8A6300; }
+  .tag-negativo { background: #FFEAE6; color: #B8402C; }
+  .tag-não-avaliado { background: #EEF0F5; color: var(--ink-muted); }
+
+  footer {
+    max-width: 1080px;
+    margin: 1.5rem auto 0;
+    padding: 0 1.5rem 2rem;
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+  }
+
+  @media (max-width: 760px) {
+    .kpis { grid-template-columns: 1fr 1fr; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .item-recente { grid-template-columns: auto 1fr; }
+    .item-meta { grid-column: 2; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <p class="eyebrow">Assessoria de Comunicação Social · UFSB</p>
+    <h1>Clipping UFSB</h1>
+    <p class="subtitulo">Panorama automático da cobertura de imprensa sobre a Universidade Federal do Sul da Bahia, atualizado a partir da planilha de curadoria da ACS.</p>
+  </div>
+  <svg class="wave" viewBox="0 0 1080 40" preserveAspectRatio="none" width="100%" height="40" aria-hidden="true">
+    <path d="M0,20 C180,40 360,0 540,20 C720,40 900,0 1080,20 L1080,40 L0,40 Z" fill="#F5F7FA"></path>
+  </svg>
+</header>
+
+<main>
+  <div id="aviso-demo">⚠️ <span>Mostrando dados de demonstração. Configure <code>CSV_URL</code> no topo do arquivo <code>docs/index.html</code> com o link da planilha publicada para ver os dados reais.</span></div>
+
+  <section class="kpis">
+    <div class="kpi-card"><div class="kpi-numero" id="kpiTotal">—</div><div class="kpi-label">Menções no total</div></div>
+    <div class="kpi-card"><div class="kpi-numero" id="kpiPositivas">—</div><div class="kpi-label">Cobertura positiva</div></div>
+    <div class="kpi-card"><div class="kpi-numero" id="kpiTema">—</div><div class="kpi-label">Tema mais frequente</div></div>
+    <div class="kpi-card"><div class="kpi-numero" id="kpiCampus">—</div><div class="kpi-label">Campus mais citado</div></div>
+  </section>
+
+  <section class="charts-grid">
+    <div class="card">
+      <h2>Menções por mês</h2>
+      <div class="chart-wrap"><canvas id="chartMensal"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Distribuição de sentimento</h2>
+      <div class="chart-wrap"><canvas id="chartSentimento"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Menções por tema</h2>
+      <div class="chart-wrap"><canvas id="chartTema"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Menções por campus</h2>
+      <div class="chart-wrap"><canvas id="chartCampus"></canvas></div>
+    </div>
+  </section>
+
+  <section class="recentes">
+    <h2>Notícias mais recentes</h2>
+    <div id="listaRecentes"></div>
+  </section>
+</main>
+
+<footer>Atualizado em <span id="dataAtualizacao"></span> · dados: aba "clipping tratado"</footer>
+
+<script>
+// ---------------------------------------------------------------------
+// COLE AQUI o link CSV da planilha publicada:
+// Google Sheets → Arquivo → Compartilhar → Publicar na web →
+// selecione a aba "clipping tratado" → formato CSV → Publicar → copie o link.
+// ---------------------------------------------------------------------
+const CSV_URL = "COLE_AQUI_O_LINK_CSV_PUBLICADO";
+
+const CORES_SENTIMENTO = {
+  "positivo": "#34A65F",
+  "neutro": "#FFC53D",
+  "negativo": "#FF6B54",
+  "não avaliado": "#C6CCDA",
+};
+
+// Dados de demonstração, usados só enquanto CSV_URL não é configurado.
+const DADOS_DEMO = [
+  { "Data": "04/11/2025", "Veículo": "Boca News", "Manchete": "UFSB oferece mais de 1.600 vagas em Ilhéus, Porto Seguro e Teixeira de Freitas", "Local": "Ilhéus", "viés": "positivo", "URL": "https://exemplo.com/1", "viés (automático)": "positivo", "Tema": "Ensino e Extensão", "Campus": "Multicampi / Reitoria", "Origem": "Manual" },
+  { "Data": "15/10/2025", "Veículo": "Jornal da Bahia", "Manchete": "Pesquisadores da UFSB estudam impacto do El Niño na restinga", "Local": "Porto Seguro", "viés": "", "URL": "https://exemplo.com/2", "viés (automático)": "positivo", "Tema": "Ciência e Pesquisa", "Campus": "Campus Sosígenes Costa (Porto Seguro)", "Origem": "Automático" },
+  { "Data": "02/10/2025", "Veículo": "Radar News", "Manchete": "UFSB debate economia do mar em seminário regional", "Local": "BA", "viés": "neutro", "URL": "https://exemplo.com/3", "viés (automático)": "neutro", "Tema": "Economia do Mar", "Campus": "Multicampi / Reitoria", "Origem": "Manual" },
+  { "Data": "20/09/2025", "Veículo": "Século Diário", "Manchete": "Alunos da UFSB relatam falta de estrutura em campus de Itabuna", "Local": "Itabuna/Ilhéus", "viés": "negativo", "URL": "https://exemplo.com/4", "viés (automático)": "negativo", "Tema": "Gestão Institucional", "Campus": "Campus Jorge Amado (Itabuna/Ilhéus)", "Origem": "Manual" },
+  { "Data": "05/09/2025", "Veículo": "Correio", "Manchete": "UFSB participa de mutirão de saúde em Teixeira de Freitas", "Local": "Teixeira de Freitas", "viés": "", "URL": "https://exemplo.com/5", "viés (automático)": "positivo", "Tema": "Ensino e Extensão", "Campus": "Campus Paulo Freire (Teixeira de Freitas)", "Origem": "Automático" },
+  { "Data": "18/08/2025", "Veículo": "G1 Bahia", "Manchete": "Festival Chocolat Bahia tem participação de pesquisadores da UFSB", "Local": "Itabuna/Ilhéus", "viés": "positivo", "URL": "https://exemplo.com/6", "viés (automático)": "positivo", "Tema": "Cultura, Gastronomia e Território", "Campus": "Campus Jorge Amado (Itabuna/Ilhéus)", "Origem": "Manual" },
+];
+
+function sentimentoEfetivo(linha) {
+  const manual = (linha["viés"] || "").trim().toLowerCase();
+  if (manual) return manual;
+  const auto = (linha["viés (automático)"] || "").trim().toLowerCase();
+  return auto || "não avaliado";
+}
+
+function parseDataBR(str) {
+  if (!str) return null;
+  const partes = String(str).trim().split("/");
+  if (partes.length === 3) {
+    const [d, m, a] = partes.map(Number);
+    if (d && m && a) return new Date(a, m - 1, d);
+  } else if (partes.length === 2) {
+    const [d, m] = partes.map(Number);
+    if (d && m) return new Date(new Date().getFullYear(), m - 1, d);
+  }
+  return null;
+}
+
+function agruparContagem(linhas, campo) {
+  const contagem = {};
+  linhas.forEach((l) => {
+    const chave = (l[campo] || "Não classificado").trim() || "Não classificado";
+    contagem[chave] = (contagem[chave] || 0) + 1;
+  });
+  return contagem;
+}
+
+function topEntrada(contagem) {
+  const entradas = Object.entries(contagem).sort((a, b) => b[1] - a[1]);
+  return entradas.length ? entradas[0][0] : "—";
+}
+
+function renderizarBarras(id, labels, valores, cor) {
+  new Chart(document.getElementById(id), {
+    type: "bar",
+    data: { labels, datasets: [{ data: valores, backgroundColor: cor, borderRadius: 4, maxBarThickness: 36 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { family: "Inter", size: 11 } } }, x: { ticks: { font: { family: "Inter", size: 11 } } } },
+    },
+  });
+}
+
+function renderizarBarrasHorizontais(id, contagemObj, cor) {
+  const entradas = Object.entries(contagemObj).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  new Chart(document.getElementById(id), {
+    type: "bar",
+    data: { labels: entradas.map((e) => e[0]), datasets: [{ data: entradas.map((e) => e[1]), backgroundColor: cor, borderRadius: 4 }] },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { family: "Inter", size: 11 } } }, y: { ticks: { font: { family: "Inter", size: 11 } } } },
+    },
+  });
+}
+
+function montarPainel(linhasBrutas) {
+  const linhas = (linhasBrutas || []).filter((l) => l && (l.Manchete || l.URL));
+
+  const sentimentos = linhas.map(sentimentoEfetivo);
+  const positivas = sentimentos.filter((s) => s === "positivo").length;
+  const pct = linhas.length ? Math.round((positivas / linhas.length) * 100) : 0;
+
+  const contagemTema = agruparContagem(linhas, "Tema");
+  const contagemCampus = agruparContagem(linhas, "Campus");
+
+  document.getElementById("kpiTotal").textContent = linhas.length;
+  document.getElementById("kpiPositivas").textContent = pct + "%";
+  document.getElementById("kpiTema").textContent = topEntrada(contagemTema);
+  document.getElementById("kpiCampus").textContent = topEntrada(contagemCampus);
+
+  const contagemMes = {};
+  linhas.forEach((l) => {
+    const data = parseDataBR(l.Data);
+    if (!data) return;
+    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+    contagemMes[chave] = (contagemMes[chave] || 0) + 1;
+  });
+  const mesesOrdenados = Object.keys(contagemMes).sort();
+  renderizarBarras("chartMensal", mesesOrdenados, mesesOrdenados.map((m) => contagemMes[m]), "#002878");
+
+  const contagemSent = { "positivo": 0, "neutro": 0, "negativo": 0, "não avaliado": 0 };
+  sentimentos.forEach((s) => { contagemSent[s] = (contagemSent[s] || 0) + 1; });
+  new Chart(document.getElementById("chartSentimento"), {
+    type: "doughnut",
+    data: {
+      labels: Object.keys(contagemSent),
+      datasets: [{ data: Object.values(contagemSent), backgroundColor: Object.keys(contagemSent).map((k) => CORES_SENTIMENTO[k]) }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { font: { family: "Inter", size: 11 }, boxWidth: 10, padding: 12 } } },
+    },
+  });
+
+  renderizarBarrasHorizontais("chartTema", contagemTema, "#4FA8D8");
+  renderizarBarrasHorizontais("chartCampus", contagemCampus, "#002878");
+
+  const recentes = [...linhas].sort((a, b) => (parseDataBR(b.Data) || 0) - (parseDataBR(a.Data) || 0)).slice(0, 8);
+  const lista = document.getElementById("listaRecentes");
+  lista.innerHTML = "";
+  recentes.forEach((l) => {
+    const sent = sentimentoEfetivo(l);
+    const item = document.createElement("a");
+    item.href = l.URL || "#";
+    item.target = "_blank";
+    item.rel = "noopener";
+    item.className = "item-recente";
+    item.innerHTML = `
+      <span class="tag tag-${sent.replace(/\s+/g, "-")}">${sent}</span>
+      <span class="item-titulo">${l.Manchete || "(sem título)"}</span>
+      <span class="item-meta">${l["Veículo"] || ""} · ${l.Data || ""}</span>
+    `;
+    lista.appendChild(item);
+  });
+}
+
+function iniciar() {
+  document.getElementById("dataAtualizacao").textContent = new Date().toLocaleString("pt-BR");
+  const aviso = document.getElementById("aviso-demo");
+
+  if (CSV_URL.startsWith("COLE_AQUI")) {
+    aviso.style.display = "flex";
+    montarPainel(DADOS_DEMO);
+    return;
+  }
+
+  Papa.parse(CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: (resultados) => montarPainel(resultados.data),
+    error: () => {
+      aviso.style.display = "flex";
+      aviso.querySelector("span").textContent = "Não foi possível carregar a planilha publicada agora. Mostrando dados de demonstração.";
+      montarPainel(DADOS_DEMO);
+    },
+  });
+}
+
+document.addEventListener("DOMContentLoaded", iniciar);
+</script>
+
+</body>
+</html>
