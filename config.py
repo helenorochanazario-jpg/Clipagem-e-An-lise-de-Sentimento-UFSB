@@ -77,12 +77,14 @@ CAMPUS_KEYWORDS = {
     "Campus Sosígenes Costa (Porto Seguro)": ["porto seguro", "sosígenes costa", "sosigenes costa"],
     "Campus Jorge Amado (Itabuna/Ilhéus)": ["itabuna", "ilhéus", "ilheus", "jorge amado"],
     "Campus Paulo Freire (Teixeira de Freitas)": ["teixeira de freitas", "paulo freire"],
+    "Campus Maria Felipa (Jequié)": ["jequié", "maria felipa"]
 }
 
 LOCAL_POR_CAMPUS = {
     "Campus Sosígenes Costa (Porto Seguro)": "Porto Seguro",
     "Campus Jorge Amado (Itabuna/Ilhéus)": "Itabuna/Ilhéus",
     "Campus Paulo Freire (Teixeira de Freitas)": "Teixeira de Freitas",
+    "Campus Maria Felipa (Jequié)": "Jequié"
 }
 LOCAL_PADRAO = "BA"  # quando nenhum campus específico é identificado
 
@@ -97,6 +99,7 @@ TERMOS_BUSCA = {
     "campus_sosigenes_costa": ['"UFSB" "Porto Seguro"'],
     "campus_jorge_amado": ['"UFSB" "Itabuna"', '"UFSB" "Ilhéus"'],
     "campus_paulo_freire": ['"UFSB" "Teixeira de Freitas"'],
+    "campus_maria_felipa": ['"UFSB", "Jequié"']
     "reitoria_geral": ['"Universidade Federal do Sul da Bahia"'],
 }
 JANELA_TEMPO = "when:2d"
