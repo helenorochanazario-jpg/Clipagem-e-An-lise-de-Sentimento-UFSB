@@ -80,6 +80,49 @@
     margin-bottom: 1.5rem;
   }
 
+  .filtros {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem 1.1rem;
+    align-items: flex-end;
+    margin-bottom: 0.65rem;
+    box-shadow: 0 1px 2px rgba(16, 24, 44, 0.04);
+  }
+  .filtro-grupo { display: flex; flex-direction: column; gap: 0.3rem; }
+  .filtro-grupo label {
+    font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-muted);
+  }
+  .filtro-grupo select, .filtro-grupo input {
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    padding: 0.45rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    min-width: 148px;
+    height: 36px;
+  }
+  .filtro-busca input { min-width: 170px; }
+  #btnLimparFiltros {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    padding: 0 0.9rem;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--navy);
+    font-weight: 500;
+    cursor: pointer;
+  }
+  #btnLimparFiltros:hover { background: var(--border); }
+  .resumo-filtro { font-family: var(--font-mono); font-size: 0.74rem; color: var(--ink-muted); margin: 0 0 1.25rem; }
+
   .kpis {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -96,9 +139,9 @@
   .kpi-numero {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 2rem;
+    font-size: 1.85rem;
     color: var(--navy);
-    line-height: 1;
+    line-height: 1.15;
   }
   .kpi-label {
     margin-top: 0.35rem;
@@ -159,6 +202,7 @@
   .tag-neutro { background: #FFF6E0; color: #8A6300; }
   .tag-negativo { background: #FFEAE6; color: #B8402C; }
   .tag-não-avaliado { background: #EEF0F5; color: var(--ink-muted); }
+  .sem-resultado { font-size: 0.85rem; color: var(--ink-muted); padding: 0.6rem 0; }
 
   footer {
     max-width: 1080px;
@@ -174,6 +218,7 @@
     .charts-grid { grid-template-columns: 1fr; }
     .item-recente { grid-template-columns: auto 1fr; }
     .item-meta { grid-column: 2; }
+    .filtro-grupo select, .filtro-grupo input { min-width: 130px; }
   }
 </style>
 </head>
@@ -192,6 +237,53 @@
 
 <main>
   <div id="aviso-demo">⚠️ <span>Mostrando dados de demonstração. Configure <code>CSV_URL</code> no topo do arquivo <code>docs/index.html</code> com o link da planilha publicada para ver os dados reais.</span></div>
+
+  <section class="filtros">
+    <div class="filtro-grupo">
+      <label for="filtroTipoPeriodo">Período</label>
+      <select id="filtroTipoPeriodo">
+        <option value="total">Todo o período</option>
+        <option value="ano">Por ano</option>
+        <option value="mes">Por mês</option>
+      </select>
+    </div>
+    <div class="filtro-grupo" id="grupoAno" style="display:none;">
+      <label for="filtroAno">Ano</label>
+      <select id="filtroAno"></select>
+    </div>
+    <div class="filtro-grupo" id="grupoMes" style="display:none;">
+      <label for="filtroMes">Mês</label>
+      <select id="filtroMes"></select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtroOrigem">Origem</label>
+      <select id="filtroOrigem"></select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtroTema">Tema</label>
+      <select id="filtroTema"></select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtroCampus">Campus</label>
+      <select id="filtroCampus"></select>
+    </div>
+    <div class="filtro-grupo">
+      <label for="filtroSentimento">Sentimento</label>
+      <select id="filtroSentimento">
+        <option value="">Todos</option>
+        <option value="positivo">Positivo</option>
+        <option value="neutro">Neutro</option>
+        <option value="negativo">Negativo</option>
+        <option value="não avaliado">Não avaliado</option>
+      </select>
+    </div>
+    <div class="filtro-grupo filtro-busca">
+      <label for="filtroBusca">Buscar</label>
+      <input type="text" id="filtroBusca" placeholder="veículo ou manchete">
+    </div>
+    <button id="btnLimparFiltros" type="button">Limpar filtros</button>
+  </section>
+  <p class="resumo-filtro" id="resumoFiltro"></p>
 
   <section class="kpis">
     <div class="kpi-card"><div class="kpi-numero" id="kpiTotal">—</div><div class="kpi-label">Menções no total</div></div>
@@ -220,7 +312,7 @@
   </section>
 
   <section class="recentes">
-    <h2>Notícias mais recentes</h2>
+    <h2>Notícias no filtro atual</h2>
     <div id="listaRecentes"></div>
   </section>
 </main>
@@ -242,15 +334,24 @@ const CORES_SENTIMENTO = {
   "não avaliado": "#C6CCDA",
 };
 
+const NOMES_MES = ["janeiro","fevereiro","março","abril","maio","junho","julho","agosto","setembro","outubro","novembro","dezembro"];
+
 // Dados de demonstração, usados só enquanto CSV_URL não é configurado.
+// Espalhados por vários anos/origens de propósito, para os filtros terem o que mostrar.
 const DADOS_DEMO = [
-  { "Data": "04/11/2025", "Veículo": "Boca News", "Manchete": "UFSB oferece mais de 1.600 vagas em Ilhéus, Porto Seguro e Teixeira de Freitas", "Local": "Ilhéus", "viés": "positivo", "URL": "https://exemplo.com/1", "viés (automático)": "positivo", "Tema": "Ensino e Extensão", "Campus": "Multicampi / Reitoria", "Origem": "Manual" },
-  { "Data": "15/10/2025", "Veículo": "Jornal da Bahia", "Manchete": "Pesquisadores da UFSB estudam impacto do El Niño na restinga", "Local": "Porto Seguro", "viés": "", "URL": "https://exemplo.com/2", "viés (automático)": "positivo", "Tema": "Ciência e Pesquisa", "Campus": "Campus Sosígenes Costa (Porto Seguro)", "Origem": "Automático" },
-  { "Data": "02/10/2025", "Veículo": "Radar News", "Manchete": "UFSB debate economia do mar em seminário regional", "Local": "BA", "viés": "neutro", "URL": "https://exemplo.com/3", "viés (automático)": "neutro", "Tema": "Economia do Mar", "Campus": "Multicampi / Reitoria", "Origem": "Manual" },
-  { "Data": "20/09/2025", "Veículo": "Século Diário", "Manchete": "Alunos da UFSB relatam falta de estrutura em campus de Itabuna", "Local": "Itabuna/Ilhéus", "viés": "negativo", "URL": "https://exemplo.com/4", "viés (automático)": "negativo", "Tema": "Gestão Institucional", "Campus": "Campus Jorge Amado (Itabuna/Ilhéus)", "Origem": "Manual" },
-  { "Data": "05/09/2025", "Veículo": "Correio", "Manchete": "UFSB participa de mutirão de saúde em Teixeira de Freitas", "Local": "Teixeira de Freitas", "viés": "", "URL": "https://exemplo.com/5", "viés (automático)": "positivo", "Tema": "Ensino e Extensão", "Campus": "Campus Paulo Freire (Teixeira de Freitas)", "Origem": "Automático" },
-  { "Data": "18/08/2025", "Veículo": "G1 Bahia", "Manchete": "Festival Chocolat Bahia tem participação de pesquisadores da UFSB", "Local": "Itabuna/Ilhéus", "viés": "positivo", "URL": "https://exemplo.com/6", "viés (automático)": "positivo", "Tema": "Cultura, Gastronomia e Território", "Campus": "Campus Jorge Amado (Itabuna/Ilhéus)", "Origem": "Manual" },
+  { "Data": "20/06/2021", "Veículo": "G1 Bahia", "Manchete": "UFSB é destaque em pesquisa sobre restinga", "Local": "Porto Seguro", "viés": "positivo", "URL": "https://exemplo.com/1", "viés (automático)": "", "Tema": "Ciência e Pesquisa", "Campus": "Campus Sosígenes Costa (Porto Seguro)", "Origem": "" },
+  { "Data": "10/03/2022", "Veículo": "Jornal da Bahia", "Manchete": "UFSB inaugura laboratório de oceanografia em Porto Seguro", "Local": "Porto Seguro", "viés": "neutro", "URL": "https://exemplo.com/2", "viés (automático)": "", "Tema": "Economia do Mar", "Campus": "Campus Sosígenes Costa (Porto Seguro)", "Origem": "" },
+  { "Data": "05/07/2023", "Veículo": "Correio", "Manchete": "UFSB participa de mutirão de saúde em Teixeira de Freitas", "Local": "Teixeira de Freitas", "viés": "", "URL": "https://exemplo.com/3", "viés (automático)": "positivo", "Tema": "Ensino e Extensão", "Campus": "Campus Paulo Freire (Teixeira de Freitas)", "Origem": "Automático (processado de List of All Alerts)" },
+  { "Data": "14/02/2024", "Veículo": "G1 Bahia", "Manchete": "Festival Chocolat Bahia tem participação de pesquisadores da UFSB", "Local": "Itabuna/Ilhéus", "viés": "positivo", "URL": "https://exemplo.com/4", "viés (automático)": "", "Tema": "Cultura, Gastronomia e Território", "Campus": "Campus Jorge Amado (Itabuna/Ilhéus)", "Origem": "" },
+  { "Data": "20/09/2024", "Veículo": "Século Diário", "Manchete": "Alunos da UFSB relatam falta de estrutura em campus de Itabuna", "Local": "Itabuna/Ilhéus", "viés": "negativo", "URL": "https://exemplo.com/5", "viés (automático)": "", "Tema": "Gestão Institucional", "Campus": "Campus Jorge Amado (Itabuna/Ilhéus)", "Origem": "" },
+  { "Data": "02/09/2025", "Veículo": "Radar News", "Manchete": "UFSB debate economia do mar em seminário regional", "Local": "BA", "viés": "neutro", "URL": "https://exemplo.com/6", "viés (automático)": "", "Tema": "Economia do Mar", "Campus": "Multicampi / Reitoria", "Origem": "" },
+  { "Data": "15/10/2025", "Veículo": "Jornal da Bahia", "Manchete": "Pesquisadores da UFSB estudam impacto do El Niño na restinga", "Local": "Porto Seguro", "viés": "", "URL": "https://exemplo.com/7", "viés (automático)": "positivo", "Tema": "Ciência e Pesquisa", "Campus": "Campus Sosígenes Costa (Porto Seguro)", "Origem": "Automático (Google News RSS)" },
+  { "Data": "04/11/2025", "Veículo": "Boca News", "Manchete": "UFSB oferece mais de 1.600 vagas em Ilhéus, Porto Seguro e Teixeira de Freitas", "Local": "Ilhéus", "viés": "positivo", "URL": "https://exemplo.com/8", "viés (automático)": "", "Tema": "Ensino e Extensão", "Campus": "Multicampi / Reitoria", "Origem": "" },
+  { "Data": "05/11/2025", "Veículo": "Notícia Sul BA", "Manchete": "UFSB assina convênio de pesquisa com instituto de oceanografia", "Local": "BA", "viés": "", "URL": "https://exemplo.com/9", "viés (automático)": "neutro", "Tema": "Economia do Mar", "Campus": "Multicampi / Reitoria", "Origem": "Automático (Bing News RSS)" },
 ];
+
+let TODOS_OS_DADOS = [];
+const graficos = {};
 
 function sentimentoEfetivo(linha) {
   const manual = (linha["viés"] || "").trim().toLowerCase();
@@ -272,10 +373,23 @@ function parseDataBR(str) {
   return null;
 }
 
+function prepararDados(linhasBrutas) {
+  return (linhasBrutas || [])
+    .filter((l) => l && (l.Manchete || l.URL))
+    .map((l) => ({
+      ...l,
+      _data: parseDataBR(l.Data),
+      _sentimento: sentimentoEfetivo(l),
+      _origem: (l.Origem || "").trim() || "Manual / legado",
+      _tema: (l.Tema || "").trim() || "Não classificado",
+      _campus: (l.Campus || "").trim() || "Não classificado",
+    }));
+}
+
 function agruparContagem(linhas, campo) {
   const contagem = {};
   linhas.forEach((l) => {
-    const chave = (l[campo] || "Não classificado").trim() || "Não classificado";
+    const chave = l[campo] || "Não classificado";
     contagem[chave] = (contagem[chave] || 0) + 1;
   });
   return contagem;
@@ -286,8 +400,79 @@ function topEntrada(contagem) {
   return entradas.length ? entradas[0][0] : "—";
 }
 
-function renderizarBarras(id, labels, valores, cor) {
-  new Chart(document.getElementById(id), {
+function preencherSelect(id, opcoes) {
+  const select = document.getElementById(id);
+  const atual = select.value;
+  select.innerHTML = "";
+  opcoes.forEach(({ value, label }) => {
+    const opt = document.createElement("option");
+    opt.value = value;
+    opt.textContent = label;
+    select.appendChild(opt);
+  });
+  if ([...select.options].some((o) => o.value === atual)) select.value = atual;
+}
+
+function popularFiltros(linhas) {
+  const anos = [...new Set(linhas.map((l) => (l._data ? l._data.getFullYear() : null)).filter(Boolean))].sort((a, b) => b - a);
+  preencherSelect("filtroAno", anos.map((a) => ({ value: String(a), label: String(a) })));
+  if (anos.length) document.getElementById("filtroAno").value = String(anos[0]);
+
+  preencherSelect("filtroMes", NOMES_MES.map((nome, i) => ({ value: String(i + 1), label: nome })));
+
+  const temas = [...new Set(linhas.map((l) => l._tema))].sort();
+  preencherSelect("filtroTema", [{ value: "", label: "Todos os temas" }, ...temas.map((t) => ({ value: t, label: t }))]);
+
+  const campi = [...new Set(linhas.map((l) => l._campus))].sort();
+  preencherSelect("filtroCampus", [{ value: "", label: "Todos os campi" }, ...campi.map((c) => ({ value: c, label: c }))]);
+
+  const origens = [...new Set(linhas.map((l) => l._origem))].sort();
+  preencherSelect("filtroOrigem", [{ value: "", label: "Todas as origens" }, ...origens.map((o) => ({ value: o, label: o }))]);
+}
+
+function alternarVisibilidadePeriodo() {
+  const tipo = document.getElementById("filtroTipoPeriodo").value;
+  document.getElementById("grupoAno").style.display = (tipo === "ano" || tipo === "mes") ? "flex" : "none";
+  document.getElementById("grupoMes").style.display = (tipo === "mes") ? "flex" : "none";
+}
+
+function linhasFiltradas() {
+  const tipo = document.getElementById("filtroTipoPeriodo").value;
+  const ano = document.getElementById("filtroAno").value;
+  const mes = document.getElementById("filtroMes").value;
+  const origem = document.getElementById("filtroOrigem").value;
+  const tema = document.getElementById("filtroTema").value;
+  const campus = document.getElementById("filtroCampus").value;
+  const sentimento = document.getElementById("filtroSentimento").value;
+  const busca = document.getElementById("filtroBusca").value.trim().toLowerCase();
+
+  return TODOS_OS_DADOS.filter((l) => {
+    if ((tipo === "ano" || tipo === "mes") && ano) {
+      if (!l._data || String(l._data.getFullYear()) !== ano) return false;
+    }
+    if (tipo === "mes" && mes) {
+      if (!l._data || String(l._data.getMonth() + 1) !== mes) return false;
+    }
+    if (origem && l._origem !== origem) return false;
+    if (tema && l._tema !== tema) return false;
+    if (campus && l._campus !== campus) return false;
+    if (sentimento && l._sentimento !== sentimento) return false;
+    if (busca) {
+      const alvo = `${l.Manchete || ""} ${l["Veículo"] || ""}`.toLowerCase();
+      if (!alvo.includes(busca)) return false;
+    }
+    return true;
+  });
+}
+
+function criarOuAtualizarBarras(id, labels, valores, cor) {
+  if (graficos[id]) {
+    graficos[id].data.labels = labels;
+    graficos[id].data.datasets[0].data = valores;
+    graficos[id].update();
+    return;
+  }
+  graficos[id] = new Chart(document.getElementById(id), {
     type: "bar",
     data: { labels, datasets: [{ data: valores, backgroundColor: cor, borderRadius: 4, maxBarThickness: 36 }] },
     options: {
@@ -298,11 +483,19 @@ function renderizarBarras(id, labels, valores, cor) {
   });
 }
 
-function renderizarBarrasHorizontais(id, contagemObj, cor) {
+function criarOuAtualizarBarrasHorizontais(id, contagemObj, cor) {
   const entradas = Object.entries(contagemObj).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  new Chart(document.getElementById(id), {
+  const labels = entradas.map((e) => e[0]);
+  const valores = entradas.map((e) => e[1]);
+  if (graficos[id]) {
+    graficos[id].data.labels = labels;
+    graficos[id].data.datasets[0].data = valores;
+    graficos[id].update();
+    return;
+  }
+  graficos[id] = new Chart(document.getElementById(id), {
     type: "bar",
-    data: { labels: entradas.map((e) => e[0]), datasets: [{ data: entradas.map((e) => e[1]), backgroundColor: cor, borderRadius: 4 }] },
+    data: { labels, datasets: [{ data: valores, backgroundColor: cor, borderRadius: 4 }] },
     options: {
       indexAxis: "y", responsive: true, maintainAspectRatio: false,
       plugins: { legend: { display: false } },
@@ -311,15 +504,51 @@ function renderizarBarrasHorizontais(id, contagemObj, cor) {
   });
 }
 
-function montarPainel(linhasBrutas) {
-  const linhas = (linhasBrutas || []).filter((l) => l && (l.Manchete || l.URL));
+function criarOuAtualizarDonut(id, contagemSent) {
+  const labels = Object.keys(contagemSent);
+  const valores = Object.values(contagemSent);
+  if (graficos[id]) {
+    graficos[id].data.datasets[0].data = valores;
+    graficos[id].update();
+    return;
+  }
+  graficos[id] = new Chart(document.getElementById(id), {
+    type: "doughnut",
+    data: { labels, datasets: [{ data: valores, backgroundColor: labels.map((k) => CORES_SENTIMENTO[k]) }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { font: { family: "Inter", size: 11 }, boxWidth: 10, padding: 12 } } },
+    },
+  });
+}
 
-  const sentimentos = linhas.map(sentimentoEfetivo);
-  const positivas = sentimentos.filter((s) => s === "positivo").length;
+function atualizarResumoFiltro(total) {
+  const tipo = document.getElementById("filtroTipoPeriodo").value;
+  const ano = document.getElementById("filtroAno").value;
+  const mes = document.getElementById("filtroMes").value;
+
+  let periodoTexto = "todo o período coletado";
+  if (tipo === "ano" && ano) periodoTexto = `ano de ${ano}`;
+  if (tipo === "mes" && ano && mes) periodoTexto = `${NOMES_MES[Number(mes) - 1]} de ${ano}`;
+
+  let faixaTotal = "";
+  if (tipo === "total") {
+    const datas = TODOS_OS_DADOS.map((l) => l._data).filter(Boolean).sort((a, b) => a - b);
+    if (datas.length) {
+      const min = datas[0], max = datas[datas.length - 1];
+      faixaTotal = ` (${NOMES_MES[min.getMonth()].slice(0, 3)}/${min.getFullYear()} a ${NOMES_MES[max.getMonth()].slice(0, 3)}/${max.getFullYear()})`;
+    }
+  }
+  document.getElementById("resumoFiltro").textContent = `${total} notícia(s) · ${periodoTexto}${faixaTotal}`;
+}
+
+function renderizar() {
+  const linhas = linhasFiltradas();
+
+  const positivas = linhas.filter((l) => l._sentimento === "positivo").length;
   const pct = linhas.length ? Math.round((positivas / linhas.length) * 100) : 0;
-
-  const contagemTema = agruparContagem(linhas, "Tema");
-  const contagemCampus = agruparContagem(linhas, "Campus");
+  const contagemTema = agruparContagem(linhas, "_tema");
+  const contagemCampus = agruparContagem(linhas, "_campus");
 
   document.getElementById("kpiTotal").textContent = linhas.length;
   document.getElementById("kpiPositivas").textContent = pct + "%";
@@ -328,48 +557,71 @@ function montarPainel(linhasBrutas) {
 
   const contagemMes = {};
   linhas.forEach((l) => {
-    const data = parseDataBR(l.Data);
-    if (!data) return;
-    const chave = `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}`;
+    if (!l._data) return;
+    const chave = `${l._data.getFullYear()}-${String(l._data.getMonth() + 1).padStart(2, "0")}`;
     contagemMes[chave] = (contagemMes[chave] || 0) + 1;
   });
   const mesesOrdenados = Object.keys(contagemMes).sort();
-  renderizarBarras("chartMensal", mesesOrdenados, mesesOrdenados.map((m) => contagemMes[m]), "#002878");
+  criarOuAtualizarBarras("chartMensal", mesesOrdenados, mesesOrdenados.map((m) => contagemMes[m]), "#002878");
 
   const contagemSent = { "positivo": 0, "neutro": 0, "negativo": 0, "não avaliado": 0 };
-  sentimentos.forEach((s) => { contagemSent[s] = (contagemSent[s] || 0) + 1; });
-  new Chart(document.getElementById("chartSentimento"), {
-    type: "doughnut",
-    data: {
-      labels: Object.keys(contagemSent),
-      datasets: [{ data: Object.values(contagemSent), backgroundColor: Object.keys(contagemSent).map((k) => CORES_SENTIMENTO[k]) }],
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: "bottom", labels: { font: { family: "Inter", size: 11 }, boxWidth: 10, padding: 12 } } },
-    },
-  });
+  linhas.forEach((l) => { contagemSent[l._sentimento] = (contagemSent[l._sentimento] || 0) + 1; });
+  criarOuAtualizarDonut("chartSentimento", contagemSent);
 
-  renderizarBarrasHorizontais("chartTema", contagemTema, "#4FA8D8");
-  renderizarBarrasHorizontais("chartCampus", contagemCampus, "#002878");
+  criarOuAtualizarBarrasHorizontais("chartTema", contagemTema, "#4FA8D8");
+  criarOuAtualizarBarrasHorizontais("chartCampus", contagemCampus, "#002878");
 
-  const recentes = [...linhas].sort((a, b) => (parseDataBR(b.Data) || 0) - (parseDataBR(a.Data) || 0)).slice(0, 8);
+  const recentes = [...linhas].sort((a, b) => (b._data || 0) - (a._data || 0)).slice(0, 8);
   const lista = document.getElementById("listaRecentes");
   lista.innerHTML = "";
+  if (!recentes.length) {
+    lista.innerHTML = '<p class="sem-resultado">Nenhuma notícia encontrada com esses filtros.</p>';
+  }
   recentes.forEach((l) => {
-    const sent = sentimentoEfetivo(l);
     const item = document.createElement("a");
     item.href = l.URL || "#";
     item.target = "_blank";
     item.rel = "noopener";
     item.className = "item-recente";
     item.innerHTML = `
-      <span class="tag tag-${sent.replace(/\s+/g, "-")}">${sent}</span>
+      <span class="tag tag-${l._sentimento.replace(/\s+/g, "-")}">${l._sentimento}</span>
       <span class="item-titulo">${l.Manchete || "(sem título)"}</span>
       <span class="item-meta">${l["Veículo"] || ""} · ${l.Data || ""}</span>
     `;
     lista.appendChild(item);
   });
+
+  atualizarResumoFiltro(linhas.length);
+}
+
+function configurarFiltros() {
+  popularFiltros(TODOS_OS_DADOS);
+  alternarVisibilidadePeriodo();
+
+  ["filtroTipoPeriodo", "filtroAno", "filtroMes", "filtroOrigem", "filtroTema", "filtroCampus", "filtroSentimento"].forEach((id) => {
+    document.getElementById(id).addEventListener("change", () => {
+      if (id === "filtroTipoPeriodo") alternarVisibilidadePeriodo();
+      renderizar();
+    });
+  });
+  document.getElementById("filtroBusca").addEventListener("input", renderizar);
+
+  document.getElementById("btnLimparFiltros").addEventListener("click", () => {
+    document.getElementById("filtroTipoPeriodo").value = "total";
+    document.getElementById("filtroOrigem").value = "";
+    document.getElementById("filtroTema").value = "";
+    document.getElementById("filtroCampus").value = "";
+    document.getElementById("filtroSentimento").value = "";
+    document.getElementById("filtroBusca").value = "";
+    alternarVisibilidadePeriodo();
+    renderizar();
+  });
+}
+
+function iniciarComDados(linhasBrutas) {
+  TODOS_OS_DADOS = prepararDados(linhasBrutas);
+  configurarFiltros();
+  renderizar();
 }
 
 function iniciar() {
@@ -378,7 +630,7 @@ function iniciar() {
 
   if (CSV_URL.startsWith("COLE_AQUI")) {
     aviso.style.display = "flex";
-    montarPainel(DADOS_DEMO);
+    iniciarComDados(DADOS_DEMO);
     return;
   }
 
@@ -386,11 +638,11 @@ function iniciar() {
     download: true,
     header: true,
     skipEmptyLines: true,
-    complete: (resultados) => montarPainel(resultados.data),
+    complete: (resultados) => iniciarComDados(resultados.data),
     error: () => {
       aviso.style.display = "flex";
       aviso.querySelector("span").textContent = "Não foi possível carregar a planilha publicada agora. Mostrando dados de demonstração.";
-      montarPainel(DADOS_DEMO);
+      iniciarComDados(DADOS_DEMO);
     },
   });
 }
