@@ -39,6 +39,7 @@ UFSB_KEYWORDS = [
     "Campus Sosígenes Costa",
     "Campus Jorge Amado",
     "Campus Paulo Freire",
+    "Campus Maria Felipa",
 ]
 
 # ---------------------------------------------------------------------------
@@ -77,14 +78,14 @@ CAMPUS_KEYWORDS = {
     "Campus Sosígenes Costa (Porto Seguro)": ["porto seguro", "sosígenes costa", "sosigenes costa"],
     "Campus Jorge Amado (Itabuna/Ilhéus)": ["itabuna", "ilhéus", "ilheus", "jorge amado"],
     "Campus Paulo Freire (Teixeira de Freitas)": ["teixeira de freitas", "paulo freire"],
-    "Campus Maria Felipa (Jequié)": ["jequié", "maria felipa"]
+    "Campus Maria Felipa (Jequié)": ["jequié", "maria felipa"],
 }
 
 LOCAL_POR_CAMPUS = {
     "Campus Sosígenes Costa (Porto Seguro)": "Porto Seguro",
     "Campus Jorge Amado (Itabuna/Ilhéus)": "Itabuna/Ilhéus",
     "Campus Paulo Freire (Teixeira de Freitas)": "Teixeira de Freitas",
-    "Campus Maria Felipa (Jequié)": "Jequié"
+    "Campus Maria Felipa (Jequié)": "Jequié",
 }
 LOCAL_PADRAO = "BA"  # quando nenhum campus específico é identificado
 
