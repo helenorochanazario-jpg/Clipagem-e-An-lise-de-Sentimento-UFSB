@@ -100,7 +100,7 @@ TERMOS_BUSCA = {
     "campus_sosigenes_costa": ['"UFSB" "Porto Seguro"'],
     "campus_jorge_amado": ['"UFSB" "Itabuna"', '"UFSB" "Ilhéus"'],
     "campus_paulo_freire": ['"UFSB" "Teixeira de Freitas"'],
-    "campus_maria_felipa": ['"UFSB", "Jequié"']
+    "campus_maria_felipa": ['"UFSB", "Jequié"'],
     "reitoria_geral": ['"Universidade Federal do Sul da Bahia"'],
 }
 JANELA_TEMPO = "when:2d"
