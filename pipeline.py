@@ -50,6 +50,9 @@ def processar_um_item(item: dict):
     cat = categorizacao.categorizar(titulo, texto)
 
     data_fmt = item["data_hora"].strftime("%d/%m/%Y") if item["data_hora"] else ""
+    if not data_fmt:
+        print(f"    aviso: não reconheci a data em 'List of All Alerts' (linha {item['linha']}, "
+              f"texto original: {item['data_hora_texto']!r}) — Data ficará em branco no Clipping.")
     linha_clipping = {
         "Data": data_fmt,
         "Veículo": item["veiculo"],

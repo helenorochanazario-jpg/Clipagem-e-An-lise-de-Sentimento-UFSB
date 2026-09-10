@@ -49,14 +49,26 @@ def garantir_colunas(aba, colunas_desejadas: list[str]) -> list[str]:
     return cabecalho
 
 
-def _parse_data_hora(valor: str):
+def parse_data_hora_legado(valor: str):
+    """
+    Tenta primeiro os formatos exatos que o IFTTT/Zapier historicamente usa
+    (M/D/AAAA). Se a linha vier em outro formato — o que parece ter
+    acontecido em algum momento, causando datas em branco no Clipping —
+    cai para um parser mais flexível antes de desistir.
+    """
+    if not valor or not valor.strip():
+        return None
     formatos = ("%m/%d/%Y %H:%M:%S", "%m/%d/%Y %H:%M", "%m/%d/%Y")
     for fmt in formatos:
         try:
             return datetime.strptime(valor.strip(), fmt)
         except (ValueError, AttributeError):
             continue
-    return None
+    try:
+        from dateutil import parser as date_parser
+        return date_parser.parse(valor, fuzzy=True, dayfirst=False)
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 
 def ler_pendentes_ordenados(sheet_id: str, aba_bruto_nome: str, coluna_status: str, limite: int):
@@ -83,7 +95,7 @@ def ler_pendentes_ordenados(sheet_id: str, aba_bruto_nome: str, coluna_status: s
         if status_atual.strip():
             continue  # já processada
         data_hora_texto = linha[idx_data] if idx_data < len(linha) else ""
-        data_hora = _parse_data_hora(data_hora_texto)
+        data_hora = parse_data_hora_legado(data_hora_texto)
         pendentes.append({
             "linha": i,
             "data_hora": data_hora,

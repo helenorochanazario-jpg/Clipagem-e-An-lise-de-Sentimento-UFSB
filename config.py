@@ -32,14 +32,18 @@ PAUSA_ENTRE_REQUISICOES_SEGUNDOS = 0.5
 
 # ---------------------------------------------------------------------------
 # 2) RELEVÂNCIA — o que conta como "é sobre a UFSB"
+#    Inclui variações comuns além do nome oficial e da sigla, para não
+#    perder menções que usam uma forma diferente de citar a universidade.
 # ---------------------------------------------------------------------------
 UFSB_KEYWORDS = [
     "UFSB",
     "Universidade Federal do Sul da Bahia",
+    "Universidade do Sul da Bahia",  # forma informal, sem o "Federal"
     "Campus Sosígenes Costa",
     "Campus Jorge Amado",
     "Campus Paulo Freire",
-    "Campus Maria Felipa",
+    "Fabrício Berton Zanchi",  # reitor — cobre matérias que citam o nome sem repetir "UFSB"
+    "Fabrício Zanchi",
 ]
 
 # ---------------------------------------------------------------------------
@@ -78,32 +82,50 @@ CAMPUS_KEYWORDS = {
     "Campus Sosígenes Costa (Porto Seguro)": ["porto seguro", "sosígenes costa", "sosigenes costa"],
     "Campus Jorge Amado (Itabuna/Ilhéus)": ["itabuna", "ilhéus", "ilheus", "jorge amado"],
     "Campus Paulo Freire (Teixeira de Freitas)": ["teixeira de freitas", "paulo freire"],
-    "Campus Maria Felipa (Jequié)": ["jequié", "maria felipa"],
 }
 
 LOCAL_POR_CAMPUS = {
     "Campus Sosígenes Costa (Porto Seguro)": "Porto Seguro",
     "Campus Jorge Amado (Itabuna/Ilhéus)": "Itabuna/Ilhéus",
     "Campus Paulo Freire (Teixeira de Freitas)": "Teixeira de Freitas",
-    "Campus Maria Felipa (Jequié)": "Jequié",
 }
 LOCAL_PADRAO = "BA"  # quando nenhum campus específico é identificado
 
 MODELO_SENTIMENTO_LANG = "pt"
 
 # ---------------------------------------------------------------------------
-# 4) COLETA COMPLEMENTAR (OPCIONAL, desligada por padrão)
-#    O pipeline principal agora usa "List of All Alerts" como fonte.
-#    Esses parâmetros só importam se você decidir ligar coleta.py à parte.
+# 4) COLETA DIRETA — Google News + Bing News (roda junto com o pipeline
+#    principal, nos mesmos 3 horários; ver pipeline_busca_direta.py)
+#    Além das buscas por campus, inclui consultas mais amplas (sigla
+#    isolada, calendário de ingresso, reitoria) para captar menções que
+#    as buscas mais específicas por campus podem não pegar.
 # ---------------------------------------------------------------------------
 TERMOS_BUSCA = {
-    "campus_sosigenes_costa": ['"UFSB" "Porto Seguro"'],
-    "campus_jorge_amado": ['"UFSB" "Itabuna"', '"UFSB" "Ilhéus"'],
-    "campus_paulo_freire": ['"UFSB" "Teixeira de Freitas"'],
-    "campus_maria_felipa": ['"UFSB", "Jequié"'],
-    "reitoria_geral": ['"Universidade Federal do Sul da Bahia"'],
+    "campus_sosigenes_costa": [
+        '"UFSB" "Porto Seguro"',
+        '"Universidade Federal do Sul da Bahia" "Porto Seguro"',
+        '"Campus Sosígenes Costa"',
+    ],
+    "campus_jorge_amado": [
+        '"UFSB" "Itabuna"',
+        '"UFSB" "Ilhéus"',
+        '"Campus Jorge Amado" UFSB',
+    ],
+    "campus_paulo_freire": [
+        '"UFSB" "Teixeira de Freitas"',
+        '"Campus Paulo Freire" UFSB',
+    ],
+    "reitoria_geral": [
+        '"Universidade Federal do Sul da Bahia"',
+        '"UFSB" reitoria',
+        '"UFSB"',  # rede mais larga: pega o que as consultas específicas acima não pegam
+        '"UFSB" vestibular',
+        '"UFSB" Sisu',
+        '"UFSB" Enem',
+        '"UFSB" "Fabrício Zanchi"',
+    ],
 }
-JANELA_TEMPO = "when:2d"
+JANELA_TEMPO = "when:2d"  # só o Google News entende esse operador
 PORTAIS_RSS = []
 ENABLE_INSTAGRAM = False
 INSTAGRAM_BUSINESS_ACCOUNT_ID = ""
