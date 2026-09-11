@@ -123,6 +123,6 @@ def main():
 
 
 if __name__ == "__main__":
-    if SHEET_ID == "COLE_AQUI_O_ID_DA_PLANILHA":
+    if SHEET_ID == "15QSgcDCIBxuKxpntClOf7krO75hyCMZstR6yD92Sv30":
         sys.exit("Configure o SHEET_ID em config.py antes de rodar este script.")
     main()
